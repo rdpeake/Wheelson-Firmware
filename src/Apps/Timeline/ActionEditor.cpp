@@ -1,35 +1,40 @@
 #include "ActionEditor.h"
-#include "../../Wheelson.h"
+#include <Wheelson.h>
 #include "Timeline.h"
 #include <Input/Input.h>
+
+#include "Bitmaps/time.hpp"
+#include "Bitmaps/color.hpp"
+#include "Bitmaps/freq.hpp"
+#include "Bitmaps/volume.hpp"
 #include "../../Elements/ActionEditItem.h"
 
 
 Vector<Vector<Setting>> settings = {
 		{
-			Setting(Setting::Type::NUMERIC, "ms", Setting::Icon::TIME,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
+			Setting(Setting::Type::NUMERIC, "ms", icon_time,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
 		},
 		{
-			Setting(Setting::Type::NUMERIC, "ms", Setting::Icon::TIME,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
+			Setting(Setting::Type::NUMERIC, "ms", icon_time,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
 		},
 		{
-			Setting(Setting::Type::NUMERIC, "ms", Setting::Icon::TIME,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
+			Setting(Setting::Type::NUMERIC, "ms", icon_time,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
 		},
 		{
-			Setting(Setting::Type::NUMERIC, "ms", Setting::Icon::TIME,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
+			Setting(Setting::Type::NUMERIC, "ms", icon_time,  new SettingNumeric(500, 10000, 500), offsetof(MoveParams, millis))
 		},
 		{
-			Setting(Setting::Type::OPTION, "",Setting::Icon::COLOR, new SettingOption({ "Red", "Blue", "Green" }), offsetof(MoveParams, millis))
+			Setting(Setting::Type::OPTION, "", icon_color, new SettingOption({ "Red", "Blue", "Green" }), offsetof(MoveParams, millis))
 		},
 		{},
 		{
-			Setting(Setting::Type::NUMERIC, "ms", Setting::Icon::TIME,  new SettingNumeric(500, 10000, 500), offsetof(ToneParams, millis)),
-			Setting(Setting::Type::NUMERIC, "Hz", Setting::Icon::FREQ,  new SettingNumeric(500, 10000, 200), offsetof(ToneParams, frequency)),
-			Setting(Setting::Type::NUMERIC, "", Setting::Icon::VOLUME,  new SettingNumeric(1, 10, 1), offsetof(ToneParams, volume))
+			Setting(Setting::Type::NUMERIC, "ms", icon_time,  new SettingNumeric(500, 10000, 500), offsetof(ToneParams, millis)),
+			Setting(Setting::Type::NUMERIC, "Hz", icon_freq,  new SettingNumeric(500, 10000, 200), offsetof(ToneParams, frequency)),
+			Setting(Setting::Type::NUMERIC, "", icon_volume,  new SettingNumeric(1, 10, 1), offsetof(ToneParams, volume))
 		},
 		{
-			Setting(Setting::Type::OPTION, "", Setting::Icon::COLOR,  new SettingOption({ "HONK", "CHONK", "NewFresh", "SimpleMini" }), offsetof(TuneParams, tune)),
-			Setting(Setting::Type::NUMERIC, "", Setting::Icon::VOLUME,  new SettingNumeric(1, 10, 1), offsetof(TuneParams, volume))
+			Setting(Setting::Type::OPTION, "", icon_color,  new SettingOption({ "HONK", "CHONK", "NewFresh", "SimpleMini" }), offsetof(TuneParams, tune)),
+			Setting(Setting::Type::NUMERIC, "", icon_volume,  new SettingNumeric(1, 10, 1), offsetof(TuneParams, volume))
 		}
 };
 
@@ -47,7 +52,7 @@ void ActionEditor::initAction(AutoAction::Type type, AutoAction* action){
 	this->action = action;
 
 	for(auto& item : list.getChildren()){
-		delete item;
+		//delete item;
 	}
 
 	list.getChildren().clear();
@@ -67,18 +72,17 @@ void ActionEditor::initAction(AutoAction::Type type, AutoAction* action){
 
 void ActionEditor::draw(){
 	screen.draw();
+	screen.commit();
 }
 
 void ActionEditor::start(){
-	draw();
-	screen.commit();
 	auto ret = [](){
 		if(instance == nullptr) return;
 		instance->pop();
 	};
 
-	Input::getInstance()->setBtnPressCallback(BTN_A, ret);
-	Input::getInstance()->setBtnPressCallback(BTN_B, ret);
+	Input::getInstance()->setBtnPressCallback(BTN_MID, ret);
+	Input::getInstance()->setBtnPressCallback(BTN_BACK, ret);
 
 	Input::getInstance()->setBtnPressCallback(BTN_RIGHT, [](){
 		if(instance == nullptr) return;
@@ -117,11 +121,12 @@ void ActionEditor::start(){
 		instance->draw();
 	});
 
+	draw();
 }
 
 void ActionEditor::stop(){
-	Input::getInstance()->removeBtnPressCallback(BTN_A);
-	Input::getInstance()->removeBtnPressCallback(BTN_B);
+	Input::getInstance()->removeBtnPressCallback(BTN_MID);
+	Input::getInstance()->removeBtnPressCallback(BTN_BACK);
 	Input::getInstance()->removeBtnPressCallback(BTN_LEFT);
 	Input::getInstance()->removeBtnPressCallback(BTN_RIGHT);
 	Input::getInstance()->removeBtnPressCallback(BTN_UP);

@@ -2,7 +2,7 @@
 #include <Loop/LoopManager.h>
 #include <sstream>
 #include "TimelineApp.h"
-#include "../../Wheelson.h"
+#include <Wheelson.h>
 #include "../../Components/ActionProcessor.h"
 #include <Input/Input.h>
 
@@ -22,7 +22,7 @@ void TimelineApp::play(uint index){
 
 	for(const AutoAction& action : pattern){
 
-		AutoAction* nAction = static_cast<AutoAction*>(malloc(sizeof(AutoAction)));
+		AutoAction* nAction = static_cast<AutoAction*>(ps_malloc(sizeof(AutoAction)));
 		memcpy(nAction, &action, sizeof(AutoAction));
 
 		const size_t sizes[8] = {
@@ -38,7 +38,7 @@ void TimelineApp::play(uint index){
 
 		size_t size = sizes[action.type];
 		if(size != 0){
-			nAction->params = malloc(size);
+			nAction->params = ps_malloc(size);
 			memcpy(nAction->params, action.params, size);
 		}
 
@@ -81,29 +81,31 @@ void TimelineApp::loop(uint micros){
 
 void TimelineApp::draw(){
 	screen.draw();
+	screen.commit();
 }
 
 void TimelineApp::start(){
-	draw();
-	screen.commit();
 	playing = editing = false;
 
-	Input::getInstance()->setBtnPressCallback(BTN_B, [](){
+	Input::getInstance()->setBtnPressCallback(BTN_BACK, [](){
 		if(instance == nullptr) return;
 		instance->pop();
 	});
 
-	Input::getInstance()->setBtnPressCallback(BTN_A, [](){
-
+	Input::getInstance()->setBtnPressCallback(BTN_MID, [](){
+		Serial.println("Mid press");
 	});
 
-	Input::getInstance()->setBtnReleaseCallback(BTN_A, [](){
+	Input::getInstance()->setBtnReleaseCallback(BTN_MID, [](){
+		Serial.println("A");
 		if(instance == nullptr) return;
+		Serial.println("B");
 
 		instance->filling = -1;
 		LoopManager::removeListener(instance);
 		// instance->menu.setSelectedFill(0);
 
+		Serial.println("C");
 		if(!playing){
 			instance->screen.commit();
 		}
@@ -111,21 +113,25 @@ void TimelineApp::start(){
 		editing = true;
 
 		if(playing){
+			Serial.println("D");
 			playing = false;
 			return;
 		}
 
 		if(instance->menu.getSelected() == instance->patterns.size()){
+			Serial.println("E");
 			instance->patterns.emplace_back();
 			instance->timeline->initPattern(&instance->patterns.back());
 		}else{
+			Serial.println("F");
 			instance->timeline->initPattern(&instance->patterns[instance->menu.getSelected()]);
 		}
 
 		instance->timeline->push(instance);
+		Serial.println("pushed");
 	});
 
-	Input::getInstance()->setButtonHeldCallback(BTN_A, 100, [](){
+	Input::getInstance()->setButtonHeldCallback(BTN_MID, 100, [](){
 		if(instance == nullptr) return;
 		if(instance->packed) return; // TODO: remove when btmHeldCallback is added to CircuitOS
 
@@ -135,6 +141,8 @@ void TimelineApp::start(){
 	});
 
 	Input::getInstance()->setBtnPressCallback(BTN_UP, [](){
+		Serial.println("UP press");
+
 		if(instance == nullptr) return;
 		instance->menu.selectPrev();
 		instance->screen.commit();
@@ -152,14 +160,13 @@ void TimelineApp::start(){
 void TimelineApp::unpack(){
 	Context::unpack();
 	fillMenu();
-
 }
 
 void TimelineApp::stop(){
-	Input::getInstance()->removeBtnPressCallback(BTN_A);
-	Input::getInstance()->removeBtnReleaseCallback(BTN_A);
-	// Input::getInstance()->removeBtnHeldCallback(BTN_A);
-	Input::getInstance()->removeBtnPressCallback(BTN_B);
+	Input::getInstance()->removeBtnPressCallback(BTN_MID);
+	Input::getInstance()->removeBtnReleaseCallback(BTN_MID);
+	// Input::getInstance()->removeBtnHeldCallback(BTN_MID);
+	Input::getInstance()->removeBtnPressCallback(BTN_BACK);
 	Input::getInstance()->removeBtnPressCallback(BTN_UP);
 	Input::getInstance()->removeBtnPressCallback(BTN_DOWN);
 	LoopManager::removeListener(this);
@@ -176,7 +183,7 @@ void TimelineApp::fillMenu(){
 		buffer << "Pattern " << ++i;
 		std::string str = buffer.str();
 
-		char* title = static_cast<char*>(malloc(str.size() + 1));
+		char* title = static_cast<char*>(ps_malloc(str.size() + 1));
 		memset(title, 0, str.size() + 1);
 		memcpy(title, str.c_str(), str.size());
 		menu.addItem(title);

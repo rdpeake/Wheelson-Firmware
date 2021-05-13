@@ -9,23 +9,17 @@
 #define MOTOR_STOP 2
 // TODO: enum
 
-class Motors
+class MotorControl
 {
 public:
-	Motors(I2cExpander* i2c = nullptr, Mutex* _mutex = nullptr);
-	void begin(uint8_t leftA, uint8_t leftB, uint8_t rightA, uint8_t rightB);
+	MotorControl(Mutex* _mutex = nullptr);
 	void leftMotor(uint8_t action);
 	void rightMotor(uint8_t action);
 	void stopAll();
-	static Motors* getInstance();
+	static MotorControl* getInstance();
 	Mutex* mutex;
 private:
-	void motor(bool motor, uint8_t action);
-	uint8_t pinA[2];
-	uint8_t pinB[2];
-	uint8_t currentAction[2];
-	I2cExpander* i2c;
-	static Motors* instance;
+	static MotorControl* instance;
 };
 
 #endif

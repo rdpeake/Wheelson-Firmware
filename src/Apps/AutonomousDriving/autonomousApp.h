@@ -7,7 +7,7 @@
 #include <Loop/LoopListener.h>
 #include <Util/Task.h>
 #include <UI/Image.h>
-#include "../../Components/Motors.h"
+#include "../../Components/MotorControl.h"
 #include "../../Components/AutoAction.h"
 #include "../../Components/CameraFeed.h"
 
@@ -26,6 +26,7 @@ private:
 	static AutonomousApp* instance;
 
 	CameraFeed feed;
+	Mutex bufferMut;
 
 	Image contrastPopup;
 
@@ -35,7 +36,7 @@ private:
 	ulong contrastShown = -1;
 	const uint16_t contrastDuration = 2000;
 
-    Motors* motors;
+    MotorControl* motors;
     bool driving = false;
     AutoAction::Type currentDirection = AutoAction::FORWARD;
 	Task processTask;

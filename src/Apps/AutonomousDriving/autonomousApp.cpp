@@ -1,12 +1,8 @@
 #include <Loop/LoopManager.h>
 #include "autonomousSettings.h"
 #include "autonomousApp.h"
-#include "../../defs.hpp"
+#include <Wheelson.h>
 #include <Input/Input.h>
-
-//#include <NeoPixelBus.h>
-//#include <NeoPixelAnimator.h>
-//#include <NeoPixelBrightnessBus.h>
 
 AutonomousApp* AutonomousApp::instance = nullptr;
 
@@ -15,10 +11,14 @@ const char* AutonomousApp::DirectionStrings[] = { "FORWARD", "BACKWARD", "LEFT",
 AutonomousApp::AutonomousApp(Display& display) :
 		Context(display),
 		contrastPopup(&screen, 124, 34),
-		motors(Motors::getInstance()),
+		motors(MotorControl::getInstance()),
 		processTask("videoTask", updateFeedTask, 10000),
-		feed(160, 128),
-		frameBuffers { (uint16_t*) malloc(128 * 168 * sizeof(uint16_t)), (uint16_t*) malloc(128 * 168 * sizeof(uint16_t)) }{
+		feed(160, 120),
+		frameBuffers { (uint16_t*) ps_malloc(128 * 168 * sizeof(uint16_t)), (uint16_t*) ps_malloc(128 * 168 * sizeof(uint16_t)) }{
+
+	for(int i = 0; i < 2; i++){
+		memset((void*) frameBuffers[i], 0, 128 * 160 * 2);
+	}
 
     instance = this;
 
@@ -26,7 +26,8 @@ AutonomousApp::AutonomousApp(Display& display) :
 	contrastPopup.setPos(18, 48);
 	screen.addChild(&contrastPopup);
 
-	imageBuffer = (uint16_t*) malloc(128 * 160 * sizeof(uint16_t));
+	imageBuffer = (uint16_t*) ps_malloc(128 * 160 * sizeof(uint16_t));
+	memset((void*) imageBuffer, 0, 128 * 160 * 2);
 
     pack();
 }
@@ -89,7 +90,7 @@ void AutonomousApp::processFrame()
 
 	totalCounted = 0;
 	float bottom = 0;
-	for(int i = 160 * 117; i < 160 * 128; i++){
+	for(int i = 160 * 109; i < 160 * 120; i++){
 		uint16_t color = frame[i];
 		double luminance = 0.2126 * ((color & 0xF800) >> 8) + 0.7152 * ((color & 0x07E0) >> 3) + 0.0722 * ((color & 0x1F) << 3);
 
@@ -146,8 +147,9 @@ void AutonomousApp::draw()
 	canvas->setTextFont(2);
 
 	if(imageBuffer != nullptr){
-		volatile const uint16_t* cameraFrame = imageBuffer;
-		canvas->drawIcon(const_cast<const unsigned short*>(cameraFrame), 0, 0, 160, 120);
+		//instance->bufferMut.lock();
+		canvas->drawIcon(const_cast<const unsigned short*>(imageBuffer), 0, 0, 160, 128);
+		//bufferMut.unlock();
 	}
 
 
@@ -185,14 +187,13 @@ void AutonomousApp::draw()
 		canvas->printf("S: %.0f fps  /  C: %.0f fps\n", 1.0f / frameTime, 1.0f / camTime);
 	}
 
+    screen.commit();
 }
 
 bool processPress = false;
 
 void AutonomousApp::start()
 {
-	draw();
-	screen.commit();
 	Settings::retrieve();
 	Serial.printf("Settings retrieved, contrast: %.2f\n", settings()->contrastSetting);
 
@@ -219,14 +220,14 @@ void AutonomousApp::start()
 		settings()->contrastSetting = min(settings()->contrastSetting + 5, 255.0);
 	});
 
-	Input::getInstance()->setButtonHeldCallback(BTN_A, 500, [](){
+	Input::getInstance()->setButtonHeldCallback(BTN_MID, 500, [](){
 		processPress = true;
 		if(instance == nullptr) return;
 		instance->feed.toggleProcessFeed();
 
 	});
 
-	Input::getInstance()->setBtnReleaseCallback(BTN_A, [](){
+	Input::getInstance()->setBtnReleaseCallback(BTN_MID, [](){
 		if(processPress){
 			processPress = false;
 			return;
@@ -240,59 +241,64 @@ void AutonomousApp::start()
 		}
 	});
 
-	Input::getInstance()->setBtnPressCallback(BTN_B, [](){
+	Input::getInstance()->setBtnPressCallback(BTN_BACK, [](){
 		if(instance == nullptr) return;
 		instance->pop();
 	});
 
 	driving = false;
 	LoopManager::addListener(this);
-	processTask.start(10);
+	//processTask.start(10);
 }
 
 void AutonomousApp::stop(){
 	Input::getInstance()->removeBtnPressCallback(BTN_LEFT);
 	Input::getInstance()->removeBtnPressCallback(BTN_RIGHT);
-	Input::getInstance()->removeBtnReleaseCallback(BTN_A);
-	Input::getInstance()->removeBtnPressCallback(BTN_B);
+	Input::getInstance()->removeBtnReleaseCallback(BTN_MID);
+	Input::getInstance()->removeBtnPressCallback(BTN_BACK);
 
 	LoopManager::removeListener(this);
-	processTask.stop();
+	motors->stopAll();
+	//processTask.stop();
 
 	Settings::store();
 	Serial.printf("Settings stored, contrast: %.2f\n", settings()->contrastSetting);
 }
 
 void AutonomousApp::updateFeedTask(Task* task){
-	while(task->running){
+	//while(task->running){
 		if(instance->packed) return;
 
 		if(instance == nullptr){
 			delay(1);
-			continue;
+			//continue;
+			return;
 		}
 
 		instance->camMicros = micros();
 
 		instance->feed.loadFrame();
-		uint16_t* targetBuffer = (instance->imageBuffer == instance->frameBuffers[0] ? instance->frameBuffers[1]
-																					 : instance->frameBuffers[0]);
+		uint16_t* targetBuffer = instance->frameBuffers[0];
 
-		memcpy(targetBuffer, instance->feed.getBuffer(), 128 * 160 * sizeof(uint16_t));
+		//instance->bufferMut.lock();
+		memcpy(targetBuffer, instance->feed.getRaw(), 120 * 160 * sizeof(uint16_t));
+		//instance->bufferMut.unlock();
 		instance->imageBuffer = targetBuffer;
 
 		instance->processFrame();
-	}
+	/*}
 
-	instance->motors->stopAll();
+	instance->motors->stopAll();*/
 }
 
-void AutonomousApp::loop(uint micros){
+void AutonomousApp::loop(uint){
 	if(contrastShown != -1){
 		if(millis() - contrastShown > contrastDuration){
 			contrastShown = -1;
 		}
 	}
+
+	updateFeedTask(nullptr);
 
 	draw();
 }

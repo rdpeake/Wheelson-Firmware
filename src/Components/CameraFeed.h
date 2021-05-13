@@ -13,10 +13,14 @@ public:
 	uint16_t* getRaw() const;
 	camera_fb_t* getFrame();
 
+	void toggleProcessFeed();
+
 
 private:
 	camera_fb_t* frame;
 	uint16_t* buffer;
+
+	bool processFeed = false;
 
 	void jpegToArray(uint16_t *buffer);
 };

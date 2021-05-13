@@ -2,7 +2,10 @@
 
 #include <esp_camera.h>
 #include <JPEGDecoder.h>
+#include <TFT_eSPI.h>
+#include <Display/Color.h>
 #include "../Wheelson.h"
+#include "../Apps/AutonomousDriving/autonomousSettings.h"
 
 CameraFeed::CameraFeed(uint width, uint height) : buffer((uint16_t*) ps_malloc(width * height * sizeof(uint16_t))){
 
@@ -26,11 +29,10 @@ CameraFeed::CameraFeed(uint width, uint height) : buffer((uint16_t*) ps_malloc(w
 	config.pin_pwdn = PWDN_GPIO_NUM;
 	config.pin_reset = RESET_GPIO_NUM;
 	config.xclk_freq_hz = 20000000;
-	config.pixel_format = PIXFORMAT_JPEG;
+	config.pixel_format = PIXFORMAT_RGB888;
 
-	config.frame_size = FRAMESIZE_QVGA;
-	config.jpeg_quality = 1;
-	config.fb_count = 3;
+	config.frame_size = FRAMESIZE_QQVGA;
+	config.fb_count = 1;
 
 	// Init Camera
 	esp_err_t err = esp_camera_init(&config);
@@ -42,9 +44,10 @@ CameraFeed::CameraFeed(uint width, uint height) : buffer((uint16_t*) ps_malloc(w
 	sensor_t *sensor = esp_camera_sensor_get();
 	sensor->set_hmirror(sensor, 1);
 	sensor->set_vflip(sensor, 1);
-	sensor->set_quality(sensor, 10);
-	sensor->set_framesize(sensor, FRAMESIZE_QVGA);
+	sensor->set_quality(sensor, 1);
+	sensor->set_framesize(sensor, FRAMESIZE_QQVGA);
 	sensor->set_special_effect(sensor, 0);
+	sensor->set_pixformat(sensor, PIXFORMAT_RGB888);
 }
 
 void CameraFeed::loadFrame(){
@@ -54,11 +57,29 @@ void CameraFeed::loadFrame(){
 		return;
 	}
 
-	JpegDec.decodeArray(frame->buf, frame->len);
+	if(frame->len == 0) return;
+
+	Serial.printf("len %d w %d h %d\n", frame->len, frame->width, frame->height);
+	for(int i = 0; i < max(min(frame->width * frame->height, 120 * 160) - 1, (size_t) 0); i++){
+		buffer[i] = C_RGB(frame->buf[i*3 + 2], frame->buf[i*3 + 1], frame->buf[i*3]);
+		//buffer[i] = reinterpret_cast<uint16_t*>(frame->buf)[i];
+	}
+/*	JpegDec.decodeArray(frame->buf, frame->len);
 	jpegToArray(buffer);
+	delay(20);*/
+	esp_camera_fb_return(frame);
+
+	if(!processFeed) return;
+
+	for(int i = 0; i < max(min(frame->width * frame->height, 120 * 160) - 1, (size_t) 0); i++){
+		uint16_t color = buffer[i];
+		double luminance = 0.2126 * ((color & 0xF800) >> 8) + 0.7152 * ((color & 0x07E0) >> 3) + 0.0722 * ((color & 0x1F) << 3);
+		buffer[i] = (luminance > settings()->contrastSetting) * TFT_WHITE;
+	}
 }
 
 void CameraFeed::releaseFrame(){
+	return;
 	esp_camera_fb_return(frame);
 }
 
@@ -69,6 +90,8 @@ void CameraFeed::jpegToArray(uint16_t* buffer){
 	uint32_t max_x = JpegDec.width;
 	uint32_t max_y = JpegDec.height;
 
+	Serial.printf("%d %d\n", mcu_w, mcu_h);
+	Serial.printf("%d %d\n", max_x, max_y);
 
 	// Jpeg images are drawn as a set of image block (tiles) called Minimum Coding Units (MCUs)
 	// Typically these MCUs are 16x16 pixel blocks
@@ -135,4 +158,8 @@ uint16_t* CameraFeed::getRaw() const{
 
 camera_fb_t* CameraFeed::getFrame(){
 	return frame;
+}
+
+void CameraFeed::toggleProcessFeed(){
+	processFeed = !processFeed;
 }

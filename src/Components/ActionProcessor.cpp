@@ -12,7 +12,7 @@ ActionProcessor::ActionProcessor() : actionTask("ActionProcessorTask", ActionPro
 }
 
 void ActionProcessor::start(){
-	actionTask.start(8 | portPRIVILEGE_BIT);
+	actionTask.start(1, 0);
 }
 
 void ActionProcessor::stop(){
@@ -54,8 +54,8 @@ void ActionProcessor::processAction(){
 	switch(currentAction->type){
 		case AutoAction::Type::FORWARD: {
 			MoveParams* params = static_cast<MoveParams*>(currentAction->params);
-			Motors::getInstance()->leftMotor(MOTOR_FORWARD);
-			Motors::getInstance()->rightMotor(MOTOR_FORWARD);
+			MotorControl::getInstance()->leftMotor(MOTOR_FORWARD);
+			MotorControl::getInstance()->rightMotor(MOTOR_FORWARD);
 			if(params->millis != 0){
 				delay(params->millis);
 				stopCurrentAction();
@@ -65,8 +65,8 @@ void ActionProcessor::processAction(){
 
 		case AutoAction::Type::BACKWARD: {
 			MoveParams* params = static_cast<MoveParams*>(currentAction->params);
-			Motors::getInstance()->leftMotor(MOTOR_BACKWARD);
-			Motors::getInstance()->rightMotor(MOTOR_BACKWARD);
+			MotorControl::getInstance()->leftMotor(MOTOR_BACKWARD);
+			MotorControl::getInstance()->rightMotor(MOTOR_BACKWARD);
 			if(params->millis != 0){
 				delay(params->millis);
 				stopCurrentAction();
@@ -76,8 +76,8 @@ void ActionProcessor::processAction(){
 
 		case AutoAction::Type::LEFT: {
 			MoveParams* params = static_cast<MoveParams*>(currentAction->params);
-			Motors::getInstance()->leftMotor(MOTOR_BACKWARD);
-			Motors::getInstance()->rightMotor(MOTOR_FORWARD);
+			MotorControl::getInstance()->leftMotor(MOTOR_BACKWARD);
+			MotorControl::getInstance()->rightMotor(MOTOR_FORWARD);
 			if(params->millis != 0){
 				delay(params->millis);
 				stopCurrentAction();
@@ -87,8 +87,8 @@ void ActionProcessor::processAction(){
 
 		case AutoAction::Type::RIGHT: {
 			MoveParams* params = static_cast<MoveParams*>(currentAction->params);
-			Motors::getInstance()->leftMotor(MOTOR_FORWARD);
-			Motors::getInstance()->rightMotor(MOTOR_BACKWARD);
+			MotorControl::getInstance()->leftMotor(MOTOR_FORWARD);
+			MotorControl::getInstance()->rightMotor(MOTOR_BACKWARD);
 			if(params->millis != 0){
 				delay(params->millis);
 				stopCurrentAction();
@@ -130,7 +130,7 @@ void ActionProcessor::stopCurrentAction(){
 		case AutoAction::Type::BACKWARD:
 		case AutoAction::Type::LEFT:
 		case AutoAction::Type::RIGHT:
-			Motors::getInstance()->stopAll();
+			MotorControl::getInstance()->stopAll();
 			break;
 
 		default:

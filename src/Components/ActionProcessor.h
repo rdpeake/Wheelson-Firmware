@@ -4,7 +4,7 @@
 #include <Loop/LoopManager.h>
 #include <Sync/Queue.h>
 #include <Util/Task.h>
-#include "Motors.h"
+#include "MotorControl.h"
 #include "AutoAction.h"
 
 /**

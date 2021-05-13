@@ -6,7 +6,6 @@
 #include <Support/Context.h>
 #include <Elements/ListMenu.h>
 #include <Loop/LoopListener.h>
-//#include <JPEGDecoder.h>
 #include "ActionSelector.h"
 #include "../../Components/AutoAction.h"
 
@@ -44,13 +43,6 @@ private:
 
 	Vector<AutoAction>* actions = nullptr;
 	uint selectedAction = 0;
-
-	fs::File iconFile[8];
-	Color *buffer[8]={nullptr};
-	fs::File addFile;
-	Color* bufferAdd = nullptr;
-
-	static const char* const ActionsSprites[8];
 
 	void fillMenu();
 	void buildUI();
