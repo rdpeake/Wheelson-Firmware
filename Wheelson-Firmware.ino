@@ -68,7 +68,7 @@ void setup(){
 	input->preregisterButtons({ 0, 1, 2, 3, 4, 5 });
 	LoopManager::addListener(input);
 
-	new MotorControl(&input->getMut());
+	new MotorControl(new Mutex);
 	new ActionProcessor();
 
 	LED.setHeadlight(false);
