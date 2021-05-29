@@ -8,6 +8,7 @@
 #include <SPIFFS.h>
 #include <esp32-hal-psram.h>
 #include "src/IntroScreen.h"
+#include "src/Components/RCServer.h"
 
 
 Display display(160, 128, -1, -1);
@@ -29,6 +30,12 @@ void setup(){
 		Serial.println("Nuvoton error");
 		for(;;);
 	}
+
+	LED.setBacklight(true);
+
+	RCServer rc(display);
+	rc.start();
+	for(;;);
 
 	Input* input = new WheelsonInput();
 	input->preregisterButtons({ 0, 1, 2, 3, 4, 5 });
