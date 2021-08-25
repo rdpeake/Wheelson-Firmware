@@ -4,14 +4,15 @@
 #include <Loop/LoopManager.h>
 #include <FS/CompressedFile.h>
 #include <SPIFFS.h>
+#include <Wheelson.h>
 
-IntroScreen::IntroScreen* IntroScreen::IntroScreen::instance = nullptr;
+IntroScreen* IntroScreen::instance = nullptr;
 
 
-IntroScreen::IntroScreen::IntroScreen(Display& display) : Context(display){
+IntroScreen::IntroScreen(Display& display) : Context(display){
 	instance = this;
 
-	fs::File f = SPIFFS.open("/intro.g565.hs");
+	fs::File f = SPIFFS.open("/Intro/intro.g565.hs");
 	if(!f){
 		Serial.println("Error opening intro gif");
 		return;
@@ -24,12 +25,12 @@ IntroScreen::IntroScreen::IntroScreen(Display& display) : Context(display){
 	IntroScreen::pack();
 }
 
-IntroScreen::IntroScreen::~IntroScreen(){
+IntroScreen::~IntroScreen(){
 	delete gif;
 	instance = nullptr;
 }
 
-void IntroScreen::IntroScreen::draw(){
+void IntroScreen::draw(){
 	if(gif == nullptr){
 		Serial.println("Intro gif error");
 		return;
@@ -39,7 +40,7 @@ void IntroScreen::IntroScreen::draw(){
 	gif->push();
 }
 
-void IntroScreen::IntroScreen::start(){
+void IntroScreen::start(){
 	if(!gif) return;
 
 	gif->setLoopDoneCallback([]{
@@ -49,7 +50,6 @@ void IntroScreen::IntroScreen::start(){
 
 		instance->stop();
 		delete instance;
-
 		MainMenu* main = new MainMenu(display);
 		main->unpack();
 		main->start();
@@ -61,14 +61,33 @@ void IntroScreen::IntroScreen::start(){
 	screen.commit();
 }
 
-void IntroScreen::IntroScreen::stop(){
+void IntroScreen::stop(){
 	LoopManager::removeListener(this);
+	LED.setHeadlight(false);
+	LED.setRGB(OFF);
 }
 
-void IntroScreen::IntroScreen::loop(uint micros){
-	if(!gif || !gif->checkFrame()) return;
+void IntroScreen::loop(uint micros){
+	if(millis() - previousTime >= 500){
+		previousTime = millis();
 
-	draw();
-	screen.commit();
+		WLEDColor color;
+		do {
+			color = static_cast<WLEDColor>(random(1, 6));
+		} while(color == lastColor);
+		LED.setRGB(color);
+
+		lastColor = color;
+
+		if(LED.getHeadlight() == 0 || LED.getRGB() == OFF){
+			LED.setHeadlight(255);
+		}else{
+			LED.setHeadlight(0);
+		}
+	}
+
+	if(gif && gif->checkFrame()){
+		draw();
+		screen.commit();
+	}
 }
-

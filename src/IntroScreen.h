@@ -5,33 +5,30 @@
 #include <UI/Screen.h>
 #include <Loop/LoopListener.h>
 #include <Display/AnimatedSprite.h>
+#include <Nuvoton/WheelsonLED.h>
 
 
+class IntroScreen: public Context, public LoopListener {
+public:
 
-namespace IntroScreen {
+	IntroScreen(Display &display);
 
-	class IntroScreen: public Context, public LoopListener {
-	public:
+	virtual ~IntroScreen();
 
-		IntroScreen(Display &display);
+	void start();
 
-		virtual ~IntroScreen();
+	void stop();
 
-		void start();
+	void draw();
 
-		void stop();
+	void loop(uint micros) override;
 
-		void draw();
+private:
+	static IntroScreen *instance;
+	AnimatedSprite* gif = nullptr;
+	uint16_t previousTime = 0;
+	WLEDColor lastColor = WHITE;
 
-		void loop(uint micros) override;
-
-	private:
-		static IntroScreen *instance;
-
-		AnimatedSprite* gif = nullptr;
-
-
-	};
-}
+};
 
 #endif //WHEELSON_FIRMWARE_INTROSCREEN_H
